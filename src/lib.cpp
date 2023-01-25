@@ -1,6 +1,6 @@
 #include <atomic>
-#include <experimental/optional>
 #include <cstring>
+#include <experimental/optional>
 
 template <class T> class Block;
 template <class T, int N> class RingBuffer;
@@ -8,35 +8,37 @@ template <class T, int N> class SharedReader;
 template <class T, int N> class WriteGuard;
 
 template <class T, int N> class RingBuffer {
+
 public:
-	std::atomic_bool locked;
-	std::atomic_int64_t version;
-	std::atomic_int64_t index;
-	Block<T> data[N];
+  std::atomic_bool locked;
+  std::atomic_int64_t version;
+  std::atomic_int64_t index;
+  Block<T> data[N];
 
-	RingBuffer();
+  RingBuffer();
 
-	SharedReader<T, N> reader(void);
+  SharedReader<T, N> reader(void);
 
-	std::experimental::optional<WriteGuard<T, N>> try_lock(void);
+  std::experimental::optional<WriteGuard<T, N>> try_lock(void);
 
-	int64_t start_write(void); 
+  int64_t start_write(void);
 
-	void end_write(int64_t index);
+  void end_write(int64_t index);
 };
 
-template<class T, int N> RingBuffer<T, N>::RingBuffer() {
-	locked.store(false);
-	index.store(0);
-	version.store(0);
+template <class T, int N> RingBuffer<T, N>::RingBuffer() {
+  locked.store(false);
+  index.store(0);
+  version.store(0);
 }
 
 template<class T, int N> SharedReader<T, N> RingBuffer<T, N>::reader(void) {
 	return SharedReader<T, N>(this);
 }
 
-template<class T, int N> std::experimental::optional<WriteGuard<T, N>> RingBuffer<T, N>::try_lock(void) {
-	if (!this->locked.exchange(true, std::memory_order::memory_order_acquire)) {
+template <class T, int N>
+std::experimental::optional<WriteGuard<T, N>> RingBuffer<T, N>::try_lock(void) {
+        if (!this->locked.exchange(true, std::memory_order::memory_order_acquire)) {
 		return std::experimental::optional<WriteGuard<T, N>>(WriteGuard<T, N>(this));
 	} else {
 		return std::experimental::nullopt;
@@ -45,9 +47,10 @@ template<class T, int N> std::experimental::optional<WriteGuard<T, N>> RingBuffe
 
 template<class T, int N> int64_t RingBuffer<T, N>::start_write(void) {
 	int64_t index = this->index.load(std::memory_order::memory_order_relaxed);
-	int64_t seq = this->data[index].seq.load(std::memory_order::memory_order_relaxed);
+        int64_t seq =
+            this->data[index].seq.load(std::memory_order::memory_order_relaxed);
 
-	int64_t ver = this->version.load(std::memory_order::memory_order_relaxed);
+        int64_t ver = this->version.load(std::memory_order::memory_order_relaxed);
 
 	this->version.store(ver + 1, std::memory_order::memory_order_relaxed);
 
@@ -100,6 +103,4 @@ public:
 	Block();
 };
 
-template <class T> Block<T>::Block() {
-	seq.store(0);
-};
+template <class T> Block<T>::Block() { seq.store(0); };
